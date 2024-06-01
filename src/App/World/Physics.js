@@ -50,7 +50,14 @@ export default class Physics {
             const radius = this.computeBallDimensions(mesh)
             colliderType = this.rapier.ColliderDesc.ball(radius)
             this.world.createCollider(colliderType,this.rigidBody)
-
+            break;
+            case 'trimesh':
+            const { scaledVertices,indices } = this.computeTrimesh(mesh)
+            colliderType = this.rapier.ColliderDesc.trimesh(
+                scaledVertices,
+                indices,
+            )
+            this.world.createCollider(colliderType,this.rigidBody)
             break;
         }
 
@@ -85,11 +92,13 @@ export default class Physics {
     }
 
     computeTrimesh(mesh){
-        mesh.geometry
         const vertices = mesh.geometry.attributes.position.array
         const indices = mesh.geometry.index.array
-        const maxScale = Math.max(worldScale.x, worldScale.y, worldScale.z)
-        return radius * maxScale
+        const worldScale = mesh.getWorldScale(new THREE.Vector3())
+        const scaledVertices = vertices.map((vertex,index)=>{
+            return vertex *  worldScale.getComponent(index%3)
+        })
+        return {scaledVertices,indices}
     }
 
     loop() {
