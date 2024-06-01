@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import App from '../App.js'
 import Physics from './Physics.js'
 import Environment from './Environment.js'
+import { appStateStore } from '../Utils/Store.js'
 
 export default class World{
     constructor() {
@@ -11,7 +12,12 @@ export default class World{
 
         // create world classes
         this.physics = new Physics()
-        this.environment = new Environment()
+        appStateStore.subscribe(state=>{
+            if(state.physicsReady){
+
+                this.environment = new Environment()
+            }
+        })
 
         this.loop()
     }
