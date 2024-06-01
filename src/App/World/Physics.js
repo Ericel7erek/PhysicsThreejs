@@ -35,24 +35,39 @@ export default class Physics {
             // Box Rapierjs
             const rigidBodyDynamic = this.rapier.RigidBodyDesc.dynamic()
             this.rigidBody = this.world.createRigidBody(rigidBodyDynamic)
-            this.rigidBody.setTranslation(mesh.position)
+            const worldPosition = mesh.getWorldPosition(new THREE.Vector3())
+            this.rigidBody.setTranslation(worldPosition)
             this.rigidBody.setRotation(mesh.quaternion)
 
-            // autocompute dimensions
-            const colliderType = this.rapier.ColliderDesc.cuboid(0.5,0.5,0.5)
+            const dimensions = this.dimensionsCalculator(mesh)
+            
+            const colliderType = this.rapier.ColliderDesc.cuboid(dimensions.x, dimensions.y, dimensions.z)
             this.world.createCollider(colliderType,this.rigidBody)
             
             this.meshMap.set(mesh,this.rigidBody)
     }
-
+    dimensionsCalculator(mesh){
+        // autocompute dimensions
+        mesh.geometry.computeBoundingBox()
+        const size = mesh.geometry.boundingBox.max;
+        const worldScale = mesh.getWorldScale(new THREE.Vector3())
+        size.multiply(worldScale)
+        return size
+    }
     loop() {
         if(this.rapierLoaded){
             this.world.step()
             this.meshMap.forEach((rigidBody,mesh) =>{
 
-                const position = rigidBody.translation()
-                const rotation = rigidBody.rotation()
-    
+                const position = new THREE.Vector3().copy(rigidBody.translation())
+                const rotation = new THREE.Quaternion().copy(rigidBody.rotation())
+                
+                mesh.parent.worldToLocal(position)
+
+                const getinverseParentMatrix = new THREE.Matrix4().extractRotation(mesh.parent.matrixWorld).invert()
+                const applyInverseParentRotation = new THREE.Quaternion().setFromRotationMatrix(getinverseParentMatrix)
+                rotation.premultiply(applyInverseParentRotation)
+
                 mesh.position.copy(position)
                 mesh.quaternion.copy(rotation)
             } )
